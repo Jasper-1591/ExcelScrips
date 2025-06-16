@@ -1,7 +1,7 @@
 import openpyxl
 from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Font
 import os
 import time
 from collections import defaultdict
@@ -64,13 +64,16 @@ def ReadStore_SumInfo():
             sorted_files = sorted(os.listdir(storeinfo))
             # TODO 记录三次刷仓信息
             warehouse_dict_lists = defaultdict()
+            warehouse_dict_lists_detail = defaultdict()
             for store_times in sorted_files:
                 store_times_path = os.path.join(storeinfo, store_times)
                 if os.path.isdir(store_times_path):
-                    print('Store time path info: ', store_times)
+                    # print('Store time path info: ', store_times)
                     warehouse_dict = defaultdict(list)
+                    warehouse_dict_detail = defaultdict(defaultdict)
                     for warehouse in os.listdir(store_times_path):
-                        print('  ', warehouse[:4])
+                        warehouse_dict_sku_detail = defaultdict(list)
+                        # print('  ', warehouse[:4])
                         # A -> SKU O ->
                         warehouse_path = os.path.join(store_times_path, warehouse)
                         # print('----', warehouse_path)
@@ -101,16 +104,22 @@ def ReadStore_SumInfo():
                                     Total_H    += num_ * SKU_KG[sku_][2] * 167
                                 else:
                                     print(f"Error Path_SKU_KG_Sheet '{Path_SKU_KG_Sheet}' not exits {sku_}!")
-                                print('    ', sku_, ' ', num_, ' ', num_ * SKU_KG[sku_][1], ' ', num_ * SKU_KG[sku_][2], ' ', num_ * SKU_KG[sku_][2] * 167)
+                                # print('    ', sku_, ' ', num_, ' ', num_ * SKU_KG[sku_][1], ' ', num_ * SKU_KG[sku_][2], ' ', num_ * SKU_KG[sku_][2] * 167)
+                                warehouse_dict_sku_detail[sku_] = [num_, SKU_KG[sku_][1], SKU_KG[sku_][2], SKU_KG[sku_][2] * 167]
                             # print(warehouse[:4], ',', Total_Box, ',', Total_Pure, ',', Total_V, ',', Total_H)
                             warehouse_dict[warehouse[:4]] = [round(Total_Box, 2), round(Total_Pure, 2), round(Total_V, 2), round(Total_H, 2)]
+                            warehouse_dict_detail[warehouse[:4]] = warehouse_dict_sku_detail.copy()
                             ######################################################
                     warehouse_dict_lists[store_times] = warehouse_dict.copy()
-            GeneratorExcel(warehouse_dict_lists, os.path.basename(storeinfo))
+                    warehouse_dict_lists_detail[store_times] = warehouse_dict_detail.copy()
+            # 获取当前时间戳（精确到毫秒）
+            timestamp = str(int(time.time() * 1000))
+            GeneratorExcel(warehouse_dict_lists, os.path.basename(storeinfo), timestamp)
+            GeneratorExcelDetail(warehouse_dict_lists_detail, os.path.basename(storeinfo), timestamp)
         except Exception as e:
             print(f"Error: {e}")
 
-def GeneratorExcel(warehouse_dict_lists, names):
+def GeneratorExcel(warehouse_dict_lists, names, timestamp):
     global buffer
     # print(str(warehouse_dict_lists))
     # 表头（固定不变）
@@ -151,8 +160,11 @@ def GeneratorExcel(warehouse_dict_lists, names):
         generate_data_all.append(generate_data(v))
 
     section1_data = generate_data_all[0]
+    section1_data = sorted(section1_data, key=lambda x: (x['仓库']))
     section2_data = generate_data_all[1]
+    section2_data = sorted(section2_data, key=lambda x: (x['仓库']))
     section3_data = generate_data_all[2]
+    section3_data = sorted(section3_data, key=lambda x: (x['仓库']))
 
     # 创建Excel工作簿
     wb = Workbook()
@@ -267,17 +279,14 @@ def GeneratorExcel(warehouse_dict_lists, names):
     auto_adjust_column_width(ws)
 
     # 保存文件
-    # 获取当前时间戳（精确到毫秒）
-    timestamp = str(int(time.time() * 1000))
-    
     # 创建res目录和时间戳文件夹（如果不存在）
     folder_path = os.path.join("res", timestamp + '_' + names)
     os.makedirs(folder_path, exist_ok=True)
     # print(f"创建时间戳文件夹: {folder_path}")
     save_path = os.path.join(folder_path, timestamp +'_物流数据表格.xlsx')
-    save_path_txt = os.path.join(folder_path, timestamp +'_物流数据明细表格.txt')
+    # save_path_txt = os.path.join(folder_path, timestamp +'_物流数据明细表格.txt')
     wb.save(save_path)
-    buffer.write_to_file(save_path_txt)
+    # buffer.write_to_file(save_path_txt)
     print("数据表格已生成：", save_path)
 
 
@@ -331,15 +340,275 @@ class PrintBuffer:
 
 buffer = PrintBuffer()
 
+# 生成Excel文件
+def GeneratorExcelDetail(warehouse_dict_lists_detail, names, timestamp):
+    """创建Excel文件并写入数据
+    
+    Args:
+        data: 数据集
+        output_file: 输出文件名
+    """
+    def generate_random_data(warehouse_dict_lists_detail):
+        """生成随机的刷仓数据
+        
+        Args:
+            num_brushes: 刷仓次数
+            num_locations: 仓点数量
+            num_skus: 每个仓点的SKU数量
+        """
+        data = []
+        
+        for brush_k, brush_v in warehouse_dict_lists_detail.items():
+            # print('brush_k :', brush_k)
+            for location_k, location_v in brush_v.items():
+                # print('location_k :', location_k, print(str(location_v)))
+                for sku_k, sku_v in location_v.items():
+                    # print('sku_k: ', sku_k)
+                    boxes = sku_v[0]
+                    weight = sku_v[1]
+                    total_weight = sku_v[1] * boxes
+                    volume = sku_v[2]
+                    total_volume = sku_v[2] * boxes
+                    volume_weight = sku_v[3]
+                    total_volume_weight = sku_v[3] * boxes
+                
+                    # 添加到数据
+                    data.append({
+                        '刷仓记录': brush_k,
+                        '仓点': location_k,
+                        'SKU': sku_k,
+                        '箱子总数': boxes,
+                        '毛重': weight,
+                        '总毛重': total_weight,
+                        '体积': volume,
+                        '总体积': total_volume,
+                        '体积重': volume_weight,
+                        '总体积重': total_volume_weight
+                    })
+        
+        return data
+    # 设置单元格样式
+    def set_cell_style(cell, font=None, alignment=None, border=None, fill=None):
+        """设置单元格样式"""
+        if font:
+            cell.font = font
+        if alignment:
+            cell.alignment = alignment
+        if border:
+            cell.border = border
+        if fill:
+            cell.fill = fill
+
+    # 写入仓点合计
+    def write_location_totals(ws, headers, start_row, end_row, thin_border, total_fill):
+        """为指定仓点范围写入横向合计
+        
+        Args:
+            ws: 工作表对象
+            headers: 表头列表
+            start_row: 开始行
+            end_row: 结束行
+            thin_border: 边框样式
+            total_fill: 合计单元格填充样式
+        """
+        sum_columns = ['箱子总数', '总毛重', '总体积', '总体积重']
+        
+        for header in sum_columns:
+            data_col_idx = headers.index(header) + 1
+            sum_col_idx = data_col_idx + 1  # 合计列在数据列的下一列
+            
+            # 计算合计值
+            cell = ws.cell(row=start_row, column=sum_col_idx)
+            
+            # 构建SUM公式
+            start_cell = openpyxl.utils.get_column_letter(data_col_idx) + str(start_row)
+            end_cell = openpyxl.utils.get_column_letter(data_col_idx) + str(end_row)
+            cell.value = f"=SUM({start_cell}:{end_cell})"
+            
+            # 设置样式
+            set_cell_style(
+                cell, 
+                font=Font(bold=True, color='FF0000'),
+                alignment=Alignment(horizontal='center'),
+                fill=total_fill,
+                border=thin_border
+            )
+            
+            # 合并单元格
+            if end_row > start_row:
+                ws.merge_cells(start_row=start_row, start_column=sum_col_idx, 
+                            end_row=end_row, end_column=sum_col_idx)
+
+    data = generate_random_data(warehouse_dict_lists_detail)
+    print('Start')
+    # 创建工作簿
+    wb = openpyxl.Workbook()
+    # 删除默认创建的工作表
+    if 'Sheet' in wb.sheetnames:
+        del wb['Sheet']
+    
+    # 创建工作表
+    ws = wb.create_sheet(title='刷仓数据汇总')
+    
+    # 定义样式
+    header_font = Font(bold=True)
+    header_alignment = Alignment(horizontal='center', vertical='center')
+    total_font = Font(bold=True, color='FF0000')  # 红色字体
+    location_font = Font(bold=True)
+    cell_alignment = Alignment(vertical='center')
+    thin_border = Border(
+        left=Side(style='thin'), 
+        right=Side(style='thin'), 
+        top=Side(style='thin'), 
+        bottom=Side(style='thin')
+    )
+    total_fill = PatternFill(start_color='FFFFCC', end_color='FFFFCC', fill_type='solid')  # 黄色背景
+    
+    # 表头
+    original_headers = ['刷仓记录', '仓点', 'SKU', '箱子总数', '毛重', '总毛重', '体积', '总体积', '体积重', '总体积重']
+    headers = []
+    
+    # 创建包含合计列的表头
+    for header in original_headers:
+        headers.append(header)
+        if header in ['箱子总数', '总毛重', '总体积', '总体积重']:
+            headers.append(f'{header}合计')
+    
+    # 写入表头
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.value = header
+        set_cell_style(cell, header_font, header_alignment, thin_border)
+        
+        # 为合计列设置背景色
+        if '合计' in header:
+            cell.fill = total_fill
+    
+    # 如果没有数据，直接保存并返回
+    if not data:
+        # wb.save(output_file)
+        print(f"data is None{names}")
+        return
+    
+    # 对数据按刷仓记录和仓点排序
+    sorted_data = sorted(data, key=lambda x: (x['刷仓记录'], x['仓点']))
+    
+    # 写入数据并添加横向合计
+    current_row = 2
+    current_brush = None
+    current_location = None
+    brush_start_row = 2
+    location_start_row = 2
+    
+    for i, row_data in enumerate(sorted_data):
+        brush = row_data['刷仓记录']
+        location = row_data['仓点']
+        
+        # 如果是新的刷仓记录，记录开始行
+        if current_brush is not None and brush != current_brush:
+            # 处理上一个刷仓记录的仓点合计
+            location_end_row = current_row - 1
+            write_location_totals(ws, headers, location_start_row, location_end_row, thin_border, total_fill)
+            
+            # 合并刷仓记录单元格
+            ws.merge_cells(start_row=brush_start_row, start_column=1, 
+                        end_row=location_end_row, end_column=1)
+            
+            # 记录新刷仓记录的开始行
+            brush_start_row = current_row
+            location_start_row = current_row
+        
+        # 如果是新的仓点，记录开始行
+        elif current_location is not None and location != current_location:
+            # 处理上一个仓点的合计
+            location_end_row = current_row - 1
+            write_location_totals(ws, headers, location_start_row, location_end_row, thin_border, total_fill)
+            
+            # 合并仓点单元格，确保与合计列一致
+            ws.merge_cells(start_row=location_start_row, start_column=2, 
+                        end_row=location_end_row, end_column=2)
+            
+            # 记录新仓点的开始行
+            location_start_row = current_row
+        
+        # 写入当前行数据
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws.cell(row=current_row, column=col_idx)
+            
+            # 只在第一行写入刷仓记录名称
+            if header == '刷仓记录' and current_row == brush_start_row:
+                cell.value = brush
+                set_cell_style(cell, location_font, alignment=Alignment(horizontal='center', vertical='center'), border=thin_border)
+            elif header == '刷仓记录':
+                # 其他行刷仓记录单元格留空
+                cell.value = None
+                set_cell_style(cell, border=thin_border)
+            
+            # 只在第一行写入仓点名称
+            elif header == '仓点' and current_row == location_start_row:
+                cell.value = location
+                set_cell_style(cell, location_font, alignment=Alignment(horizontal='center', vertical='center'), border=thin_border)
+            elif header == '仓点':
+                # 其他行仓点单元格留空
+                cell.value = None
+                set_cell_style(cell, border=thin_border)
+            else:
+                # 写入其他数据
+                original_header = header.split('合计')[0]
+                cell.value = row_data.get(original_header, '')
+                set_cell_style(cell, alignment=cell_alignment, border=thin_border)
+        
+        current_brush = brush
+        current_location = location
+        current_row += 1
+    
+    # 处理最后一个仓点的合计
+    if sorted_data:
+        location_end_row = current_row - 1
+        write_location_totals(ws, headers, location_start_row, location_end_row, thin_border, total_fill)
+        
+        # 合并最后一个仓点的单元格
+        ws.merge_cells(start_row=location_start_row, start_column=2, 
+                    end_row=location_end_row, end_column=2)
+        
+        # 处理最后一个刷仓记录的合并
+        ws.merge_cells(start_row=brush_start_row, start_column=1, 
+                    end_row=location_end_row, end_column=1)
+    
+    # 调整列宽
+    for col_idx, header in enumerate(headers, 1):
+        column_letter = openpyxl.utils.get_column_letter(col_idx)
+        
+        # 计算该列最大宽度
+        max_length = max(
+            len(str(ws.cell(row=row, column=col_idx).value)) 
+            for row in range(1, current_row)
+        )
+        
+        # 考虑标题的长度
+        max_length = max(max_length, len(header)) + 2
+        
+        # 限制最大宽度为30
+        ws.column_dimensions[column_letter].width = min(max_length, 30)
+    
+    # 保存工作簿
+    # 创建res目录和时间戳文件夹（如果不存在）
+    folder_path = os.path.join("res", timestamp + '_' + names)
+    os.makedirs(folder_path, exist_ok=True)
+    save_path = os.path.join(folder_path, timestamp +'_物流数据详细表格.xlsx')
+    wb.save(save_path)
+    print("数据详细表格已生成：", save_path)
+
 if __name__ == '__main__':
     print('Start')
     try:
-        sys.stdout = buffer
-        # Read_Parameter()
+        Read_Parameter()
+        # sys.stdout = buffer
         Read_SKU_KG_Info()
         ReadStore_SumInfo()
     finally:
-        buffer.restore_stdout()
+        # buffer.restore_stdout()
+        pass
 
     print('End')
     os.system('pause')
