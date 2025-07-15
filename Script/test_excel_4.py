@@ -99,3 +99,72 @@ for col in ws.columns:
 # 保存文件
 wb.save("物流报价表.xlsx")
 print("Excel文件已生成：物流报价表.xlsx")
+
+
+
+
+
+
+
+
+# 改进后的合并函数
+def merge_similar_cells(ws, col_index, start_row=2):
+    """合并指定列中相同内容的连续单元格"""
+    prev_value = None
+    merge_start = start_row
+    
+    for row in range(start_row, len(data) + 2):  # +2因为数据从第2行开始
+        # 获取当前单元格值
+        current_cell = ws.cell(row=row, column=col_index)
+        current_value = current_cell.value
+        
+        # 如果是最后一行或值发生变化
+        if row == len(data) + 1 or current_value != prev_value:
+            # 如果之前有需要合并的连续相同值
+            if merge_start < row and prev_value is not None and prev_value != "":
+                # 检查要合并的范围是否有效
+                if merge_start < row:
+                    ws.merge_cells(
+                        start_row=merge_start, start_column=col_index,
+                        end_row=row-1, end_column=col_index
+                    )
+            # 重置合并起始行
+            merge_start = row
+            prev_value = current_value
+
+# 合并各列中相同内容的单元格
+columns_to_merge = {
+    "时间": 1,
+    "店铺": 2,
+    "箱数": 3,
+    "毛重": 4,
+    "体积": 5,
+    "体积重": 6,
+    "地区": 7,
+    "仓点": 8
+}
+
+for col_name, col_idx in columns_to_merge.items():
+    merge_similar_cells(ws, col_idx)
+
+# 设置对齐方式
+for row in ws.iter_rows():
+    for cell in row:
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+# 自动调整列宽
+for col in ws.columns:
+    max_length = 0
+    column = col[0].column_letter
+    for cell in col:
+        try:
+            if len(str(cell.value)) > max_length:
+                max_length = len(str(cell.value))
+        except:
+            pass
+    adjusted_width = (max_length + 2) * 1.2
+    ws.column_dimensions[column].width = adjusted_width
+
+# 保存文件
+wb.save("物流报价表.xlsx")
+print("Excel文件已生成：物流报价表.xlsx")

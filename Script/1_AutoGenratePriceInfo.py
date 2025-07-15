@@ -12,7 +12,7 @@ from io import StringIO
 # Excel D E F G
 # sku -> [0]净重kg [1]毛重kg [2]体积m³
 SKU_KG = defaultdict(list)
-SKU  = 'D'
+SKU  = 'B'
 P_KG = 'E'
 N_KG = 'F'
 M3   = 'G'
@@ -37,13 +37,17 @@ def Read_SKU_KG_Info():
         if Path_SKU_KG_Sheet in sheet_names:
             sheet = workbook[Path_SKU_KG_Sheet]
             
+            print(sheet.max_row + 1)
             for idx in range(2, sheet.max_row + 1):
                 sku_kg_data_idx = [ord(SKU) - ord('A'), ord(P_KG) - ord('A'), ord(N_KG) - ord('A'), ord(M3) - ord('A')]
                 sku_kg_data = [sheet.cell(row=idx, column=i+1).value for i in sku_kg_data_idx]
                 
+                # if sku_kg_data[0].strip() == 'Sparkle-12-GN':
+                #     print('-', sku_kg_data[0].strip(), '-')
                 if all(cell is None or str(cell).strip() == '' for cell in sku_kg_data):
                     continue
-
+                # if sku_kg_data[0].strip() == 'Sparkle-12-GN':
+                #     print('-1', sku_kg_data[0].strip(), '-1')
                 SKU_KG[sku_kg_data[0]] = [float(sku_kg_data[1]), float(sku_kg_data[2]), sku_kg_data[3]]
                 # print(SKU_KG[sku_kg_data[0]])
         else:
