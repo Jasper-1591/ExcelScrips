@@ -17,7 +17,7 @@ P_KG = 'E'
 N_KG = 'F'
 M3   = 'G'
 # 产品预报信息 sku -> kg|m3|
-Path_SKU_KG = '/Users/lifenew/WorkSpace/Python/ExcelTest/产品预报信息&货代询价测量表0603 - 最新的.xlsx'
+Path_SKU_KG = '/Users/lifenew/WorkSpace/Python/ExcelScrips/data/0715/产品预报信息表更新0712.xlsx'
 Path_SKU_KG_Sheet = '产品预报明细表更新'
 
 #2. 读取店铺刷仓记录
@@ -76,7 +76,9 @@ def ReadStore_SumInfo():
                     # print('Store time path info: ', store_times)
                     warehouse_dict = defaultdict(list)
                     warehouse_dict_detail = defaultdict(defaultdict)
+                    warehouse_4 = '' #warehouse[:4])
                     for warehouse in os.listdir(store_times_path):
+                        warehouse_4 = '' #warehouse[:4])
                         warehouse_dict_sku_detail = defaultdict(list)
                         # print('  ', warehouse[:4])
                         # A -> SKU O ->
@@ -87,6 +89,9 @@ def ReadStore_SumInfo():
                             st, ed = 0, len(text)
                             while st < ed and not text[st].startswith(Ware_House_Header):
                                 # print(warehouse, 'st:', st)
+                                if text[st].startswith('"货件名称"'):
+                                    warehouse_4 = text[st].split('","')[-1].split('-')[-1][:-2]
+                                    # print(warehouse_4)
                                 st += 1
                             
                             ######################################################
@@ -112,8 +117,11 @@ def ReadStore_SumInfo():
                                 # print('    ', sku_, ' ', num_, ' ', num_ * SKU_KG[sku_][1], ' ', num_ * SKU_KG[sku_][2], ' ', num_ * SKU_KG[sku_][2] * 167)
                                 warehouse_dict_sku_detail[sku_] = [num_, SKU_KG[sku_][1], SKU_KG[sku_][2], SKU_KG[sku_][2] * 167]
                             # print(warehouse[:4], ',', Total_Box, ',', Total_Pure, ',', Total_V, ',', Total_H)
-                            warehouse_dict[warehouse[:4]] = [round(Total_Box, 2), round(Total_Pure, 2), round(Total_V, 2), round(Total_H, 2)]
-                            warehouse_dict_detail[warehouse[:4]] = warehouse_dict_sku_detail.copy()
+                            if warehouse_4 == '':
+                                print('warehouse_4 error:', warehouse)
+                                return
+                            warehouse_dict[warehouse_4] = [round(Total_Box, 2), round(Total_Pure, 2), round(Total_V, 2), round(Total_H, 2)]
+                            warehouse_dict_detail[warehouse_4] = warehouse_dict_sku_detail.copy()
                             ######################################################
                     warehouse_dict_lists[store_times] = warehouse_dict.copy()
                     warehouse_dict_lists_detail[store_times] = warehouse_dict_detail.copy()
