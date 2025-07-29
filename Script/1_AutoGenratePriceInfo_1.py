@@ -21,7 +21,7 @@ Path_SKU_KG = '/Users/lifenew/WorkSpace/Python/ExcelScrips/data/0715/产品预�
 Path_SKU_KG_Sheet = '产品预报明细表更新'
 
 #2. 读取店铺刷仓记录
-Paths_Stores = ['/Users/lifenew/WorkSpace/Python/ExcelTest/装箱单/A店']
+Paths_Stores = ['/Users/lifenew/WorkSpace/Python/ExcelScrips/data/0715/装箱单/A']
                 # '/Users/lifenew/WorkSpace/Python/ExcelTest/装箱单/B店',]
                 # '/Users/lifenew/WorkSpace/Python/ExcelTest/0602 B店']
 # Ware_House_Colums = [0, 14] # sku A
@@ -120,7 +120,8 @@ def ReadStore_SumInfo():
                             if warehouse_4 == '':
                                 print('warehouse_4 error:', warehouse)
                                 return
-                            warehouse_dict[warehouse_4] = [round(Total_Box, 2), round(Total_Pure, 2), round(Total_V, 2), round(Total_H, 2)]
+                            # warehouse_dict[warehouse_4] = [round(Total_Box, 2), round(Total_Pure, 2), round(Total_V, 2), round(Total_H, 2)]
+                            warehouse_dict[warehouse_4] = [Total_Box, Total_Pure, Total_V, Total_H]
                             warehouse_dict_detail[warehouse_4] = warehouse_dict_sku_detail.copy()
                             ######################################################
                     warehouse_dict_lists[store_times] = warehouse_dict.copy()

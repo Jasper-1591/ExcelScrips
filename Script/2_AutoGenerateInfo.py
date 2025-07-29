@@ -15,6 +15,7 @@ HUODAIS = defaultdict()
 def Read_Parameter():
     global Path_HUODAIS
     # print('请输入产品预报信息表格:', end='')
+    print('[注]货代命名格式 日期-货代 "0712-宝通达-报价单-发amz-A.xlsx"')
     while True:
         path = input('请输入货代报价表存放路径:')
         if not os.path.exists(path):
@@ -222,9 +223,13 @@ if __name__ == '__main__':
     print('Start')
     Read_Parameter()
     for file in os.listdir(Path_HUODAIS):
-        parse_logistics_excel(os.path.join(Path_HUODAIS, file))
-
+        if file.endswith('.xlsx'):
+            print('USE File: ', os.path.join(Path_HUODAIS, file))
+            parse_logistics_excel(os.path.join(Path_HUODAIS, file))
+        else:
+            print(file, ' not xlsx file')
     GenerateExcel()
 
 
     print('End')
+    os.system('pause')

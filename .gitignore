@@ -10,7 +10,7 @@ __pycache__/
 0603-货代报价表
 0603-货代报价表.zip
 产品预报信息&货代询价测量表0603 - 最新的.xlsx
-.DS_Store
+*.DS_Store
 data/
 script/res
 
